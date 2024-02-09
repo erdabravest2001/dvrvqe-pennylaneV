@@ -5,12 +5,3 @@ TUFVUE (AKA **T**he **U**ncertain **F**indings of a **V**ery **U**ncertain **E**
 ## Author 
 Ethan Elliot Rajkumar 
 
-## Table of Contents 
-
-
-
-
-## Background
-
-
-##
