@@ -88,3 +88,13 @@ def get_pot(pot_file, take_cos):
    v = np.array(v)
 
    return interp_pot2d(r, costheta, v)
+
+def gen_ham(mol_params, spin, dvr_options):
+   from .dvr_vqe import DVR_VQE
+   import pennylane as qml 
+   mol_params['name'] += f'_{spin}'
+   pot, lims = get_pot_cr2(spin)
+        # invoke the DVR VQE class
+   dvr_vqe = DVR_VQE(mol_params, pot)
+   h_dvr = dvr_vqe.get_h_dvr(dvr_options, J=0)*hartree
+   return h_dvr

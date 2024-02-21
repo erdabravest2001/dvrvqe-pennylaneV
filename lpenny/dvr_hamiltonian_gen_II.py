@@ -1,5 +1,5 @@
 from pennylane import numpy as np
-from pot_gen_2d import * 
+from .pot_gen_2d import * 
 
 def get_FBR_R(N_R, l):
     offset_R = l + 1
