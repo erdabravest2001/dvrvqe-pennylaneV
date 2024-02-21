@@ -28,7 +28,6 @@ def print_log(s, file, end='\n', overwrite=False):
          lines.append(s + end)
          f = open(file, 'w', encoding="utf-8")
          f.writelines(lines)
-
       f.close()
 
 def cssg(all_converge_cnts_list, all_converge_vals_list, all_h_dvr_list, spin_names):

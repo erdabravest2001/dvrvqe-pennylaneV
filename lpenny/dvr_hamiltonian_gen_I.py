@@ -1,4 +1,8 @@
+from .dvr_vqe import DVR_VQE
+import pennylane as qml
 from pennylane import numpy as np
+from .pot_gen_1d import *
+
 def dvr_0inf(r, v, m=1, start_ind=0):
     dr = r[1] - r[0]
     N = r.shape[0]
@@ -26,3 +30,13 @@ def get_ham_DVR(pot1d, dvr_options, mol_params):
     start_ind = int(r_box[0] / dvr_options['dx']) - 1
     v = pot1d(r_box)
     return dvr_0inf(r_box, v, m=mol_params['mu'], start_ind=start_ind)
+
+def gen_ham(mol_params, spin, dvr_options):
+        mol_params['name'] += f'_{spin}'
+        # obtain the potential for a CR2 at certain spin
+        pot, lims = get_pot_cr2(spin)
+        # perform a dvr vqe to obtain the hamiltonian
+        dvr_vqe = DVR_VQE(mol_params, pot)
+        h_dvr = dvr_vqe.get_h_dvr(dvr_options, J=0)*hartree
+        h_dvr_p = qml.pauli_decompose(h_dvr)
+        return h_dvr, h_dvr_p

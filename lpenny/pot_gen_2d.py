@@ -1,4 +1,4 @@
-from pennylane import numpy as np
+import numpy as np 
 hartree = 219474.64
 da_to_au = 1822.888486209
 au_to_angs = 0.529177249
