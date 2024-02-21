@@ -1,5 +1,9 @@
 import pennylane as qml
 from pennylane import numpy as np
+import jax
+import jax.numpy as jnp
+import optax
+
 
 class GreedyCircs:
     """
@@ -73,87 +77,65 @@ class GreedyCircs:
         return circ_list_final, ansatz_list, params_list, ansatz_string_list
 
 
-    def opt_vqe(self, h_dvr_pauli, ansatz, vqe_options, log_file=None, opt_params=None):
-        # Ensure that the Hamiltonian is a PennyLane Hamiltonian
-        
-        # Define a device
+    def opt_vqe(self, c, vqe_options, opt_params, log_file=None):
         dev = qml.device('lightning.qubit', wires=vqe_options['num_qubits'])
 
-        # Define the QNode for the VQE circuit
         @qml.qnode(dev)
-        def circuit(params):
-            ansatz(params)
-            return qml.expval(h_dvr_pauli)
-
-        # Define the cost function
         def cost_fn(params):
-            return circuit(params)
+            return c(params)
 
-        # Initialize optimizer
-        optimizer_name = vqe_options['optimizer']
-        stepsize = vqe_options.get('step_size', 0.01)  # Default step size
-        if optimizer_name.lower() == "gradientdescent":
-            optimizer = qml.GradientDescentOptimizer(stepsize)
-        else:
-            raise ValueError(f"Optimizer {optimizer_name} not supported.")
+        # Ensure opt_params is a JAX array
+        opt_params = jnp.array(opt_params)
+        values = [cost_fn(opt_params)]
+        max_iterations = vqe_options['max_iterations']
+        opt = vqe_options['opt']
+        opt_state = opt.init(opt_params)
 
-        # Set the initial parameters
-        if opt_params is None:
-            params = np.random.rand(ansatz.num_params) * 2 * np.pi  # Random initial parameters
-        else:
-            params = opt_params
+        counts = []
 
-        counts, values = [], []
-        best_params, best_energy = None, float('inf')
+        for n in range(max_iterations):
+            gradient = jax.grad(cost_fn)(opt_params)
+            updates, opt_state = opt.update(gradient, opt_state)
+            opt_params = optax.apply_updates(opt_params, updates)
+            counts.append(n)
+            values.append(cost_fn(opt_params))
+            if n % 2 == 0:
+                print(f"Step = {n},  Energy = {values[-1]:.8f} cm^{-1}")
 
-        # Optimization loop
-        for i in range(vqe_options['max_iterations']):
-            params, energy = optimizer.step_and_cost(cost_fn, params)
-
-            counts.append(i)
-            values.append(energy)
-
-            if energy < best_energy:
-                best_energy = energy
-                best_params = params
-
-            # Logging
-            if i % 10 == 0 or i == vqe_options['max_iterations'] - 1:
-                print(f"Iteration {i+1}: Energy = {energy:.8f}")
-
-        return counts, values, best_params, best_energy
-
+        best_energy = min(values)
+        return counts, values, opt_params, best_energy
+    
     def greedy_vqe(self, ansatz_options, vqe_options, log_file=None, prev_circs=None):
-        # Get the greedy ansatz based on previous circuits and the current ansatz options
         circ_list, ansatz_list, params_list, ansatz_string_list = self.get_greedy_ansatz(ansatz_options, prev_circs, log_file)
-        best_params_list, best_energies_list, converge_cnts_list = [], [], []
+        best_params_list, best_energies_list, converge_cnts_list, converge_vals_list = [], [], [], []
 
-        for i, (ansatz, initial_param) in enumerate(zip(ansatz_list, params_list)):
-            # Call opt_vqe for optimizing the current circuit
-            converge_cnts, converge_vals, optimized_params, best_energy = self.opt_vqe(ansatz=ansatz, 
-                                                                                        h_dvr_pauli=self.h_dvr_pd, 
+        for i, a in enumerate(ansatz_list):
+            print(f"Optimizing Circuit {i+1}")
+            # Initialize opt_params if needed, for example with zeros or a specific strategy
+            initial_params = np.zeros(params_list[i].shape)
+            converge_cnts, converge_vals, optimized_params, best_energy = self.opt_vqe(c=a, 
                                                                                         vqe_options=vqe_options, 
-                                                                                        log_file=log_file, 
-                                                                                        opt_params=initial_param)
+                                                                                        opt_params=initial_params,
+                                                                                        log_file=log_file)
 
-            # Store the results from opt_vqe
             best_params_list.append(optimized_params)
             best_energies_list.append(best_energy)
             converge_cnts_list.append(converge_cnts)
+            converge_vals_list.append(converge_vals)
 
-            # Optionally log the optimization result for the current circuit
-            if log_file is not None:
+            if log_file:
                 with open(log_file, 'a') as file:
                     file.write(f"Circuit {i+1}: Best Energy = {best_energy:.8f}, Counts = {len(converge_cnts)}\n")
             else:
                 print(f"Circuit {i+1}: Best Energy = {best_energy:.8f}, Counts = {len(converge_cnts)}")
 
-            # Select the best circuits based on optimized energies
-            inds = np.argsort(best_energies_list)
-            keep_inds = inds[:ansatz_options['num_keep']]
-            best_circs = [circ_list[ind] for ind in keep_inds]
-            best_params = [best_params_list[ind] for ind in keep_inds]
-            best_energies = [best_energies_list[ind] for ind in keep_inds]
-            converge_cnts = [converge_cnts_list[ind] for ind in keep_inds]
+        # Process to select the best circuits based on optimized energies
+        inds = np.argsort(best_energies_list)
+        keep_inds = inds[:ansatz_options['num_keep']]
+        best_circs = [circ_list[ind] for ind in keep_inds]
+        best_params = [best_params_list[ind] for ind in keep_inds]
+        best_energies = [best_energies_list[ind] for ind in keep_inds]
+        converge_cnts = [converge_cnts_list[ind] for ind in keep_inds]
+        converge_vals_list = [converge_vals_list[ind] for ind in keep_inds]
 
         return best_circs, converge_cnts, None, best_params, best_energies
