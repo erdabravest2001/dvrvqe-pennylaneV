@@ -1,1 +1,1 @@
-## Reducing the number of qubit required for VQE algorithms 
+## DVR VQE FOR  RO-VIBRATIONAL LEVELS IN PENNYLANE 
