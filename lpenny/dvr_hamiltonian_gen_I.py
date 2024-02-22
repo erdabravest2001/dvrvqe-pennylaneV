@@ -4,7 +4,6 @@ from .pot_gen_1d import *
 
 def dvr_0inf(r, v, m=1, start_ind=0):
     import numpy as np
-    
     dr = r[1] - r[0]
     N = r.shape[0]
     dvr = np.zeros((r.shape[0], r.shape[0]), dtype=float)

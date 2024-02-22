@@ -10,7 +10,7 @@ class GreedyCircs:
     Class representing a greedy search algorithm for building quantum circuits.
     """
 
-    def __init__(self, ansatz_options, h_dvr_pd, num_qubits):
+    def __init__(self, ansatz_options, h_dvr_pd):
         self.ansatz_options = ansatz_options
         self.h_dvr_pd = h_dvr_pd  # Ensure this is a valid PennyLane observable
       
@@ -18,9 +18,8 @@ class GreedyCircs:
     def build_circuit(self, c, dev, ansatz_options):
         num_qubits = c.shape[0]  # Number of qubits in the circuit
         depth = c.shape[1]     # Depth of the circuit
-        n_params = np.count_nonzero(c == 1) + (num_qubits if ansatz_options['add_rs'] else 0)
+        n_params = num_qubits
         params = np.zeros(n_params, requires_grad=True)
-        
         @qml.qnode(dev)
         def circuit(params): 
             # Initialization based on ansatz options
@@ -46,7 +45,7 @@ class GreedyCircs:
                     elif gate == 3:
                         qml.SX(wires=q)
                 return qml.expval(self.h_dvr_pd)
-        return circuit, params, n_params
+        return circuit, params
 
     def get_greedy_ansatz(self, ansatz_options, best_circs, log_file=None):
         import numpy as np
@@ -62,13 +61,14 @@ class GreedyCircs:
         ansatz_list = []
         circ_list_final = []
         ansatz_string_list = []
-        params_list = []
+        params_list = []    
+        
         for index, c in enumerate(circ_list):
-            dev = qml.device('lightning.qubit', wires=ansatz_options['num_qubits'])
-            ansatz, params, nump= self.build_circuit(c, dev, ansatz_options)
+            dev = qml.device('default.qubit', wires=ansatz_options['num_qubits'])
+            ansatz, params = self.build_circuit(c, dev, ansatz_options)
             print("Circuit number: ", index)
             s = print(qml.draw(ansatz)(params))
-            if (nump > 0) and (s not in ansatz_string_list):
+            if (len(params) > 0) and (s not in ansatz_string_list):
                 ansatz_list.append(ansatz)
                 circ_list_final.append(c)
                 ansatz_string_list.append(s)
@@ -78,14 +78,14 @@ class GreedyCircs:
 
 
     def opt_vqe(self, c, vqe_options, opt_params, log_file=None):
-        dev = qml.device('lightning.qubit', wires=vqe_options['num_qubits'])
+        dev = qml.device('default.qubit', wires=vqe_options['num_qubits'])
 
         @qml.qnode(dev)
         def cost_fn(params):
             return c(params)
 
         # Ensure opt_params is a JAX array
-        opt_params = jnp.array(opt_params)
+        opt_params = opt_params
         values = [cost_fn(opt_params)]
         max_iterations = vqe_options['max_iterations']
         opt = vqe_options['opt']
@@ -109,11 +109,11 @@ class GreedyCircs:
         circ_list, ansatz_list, params_list, ansatz_string_list = self.get_greedy_ansatz(ansatz_options, prev_circs, log_file)
         best_params_list, best_energies_list, converge_cnts_list, converge_vals_list = [], [], [], []
 
-        for i, a in enumerate(ansatz_list):
+        for i, (circ, params) in enumerate(zip(ansatz_list, params_list)):
             print(f"Optimizing Circuit {i+1}")
             # Initialize opt_params if needed, for example with zeros or a specific strategy
-            initial_params = np.zeros(params_list[i].shape)
-            converge_cnts, converge_vals, optimized_params, best_energy = self.opt_vqe(c=a, 
+            initial_params = params_list[i]
+            converge_cnts, converge_vals, optimized_params, best_energy = self.opt_vqe(c=circ, 
                                                                                         vqe_options=vqe_options, 
                                                                                         opt_params=initial_params,
                                                                                         log_file=log_file)
