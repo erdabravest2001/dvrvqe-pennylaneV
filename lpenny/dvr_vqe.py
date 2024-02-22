@@ -46,5 +46,26 @@ class DVR_VQE:
             prob = np.abs(state)**2
             out += beta * prob[0]
         return out
+    
+    
+    def print_log(s, file, end='\n', overwrite=False):
+        s = str(s)
+        if not overwrite:
+            print(s, end=end)
+        else:
+            print('\r' + s, end=end)
+        if file is not None:
+            if not overwrite:
+                f = open(file, 'a', encoding="utf-8")
+                f.write(s)
+                f.write(end)
+            else:
+                f = open(file, 'r', encoding="utf-8")
+                lines = f.readlines()[:-1]
+                f.close()
+                lines.append(s + end)
+                f = open(file, 'w', encoding="utf-8")
+                f.writelines(lines)
 
-   
+            f.close()
+            
