@@ -226,7 +226,9 @@ class GreedyCircs:
         # Optionally log the final result
         if log_file:
             with open(log_file, 'a') as file:
-                file.write(f'Final best circuit after {ansatz_options["layers"]} layers: Energy = {best_overall_energy:.8f}\n')
+                file.write(f'Final best circuit after {ansatz_options["layers"]} layers: {print(best_ansatz_str)}, Energy = {best_overall_energy:.8f}\n')
         
-        print(f'Final best circuit after {ansatz_options["layers"]} layers: {print(best_ansatz_str)},  Energy = {best_overall_energy:.8f}, Params = {best_overall_params:.8f}\n')
+        print(f'Final best circuit after {ansatz_options["layers"]} layers')
+        print(best_ansatz_str)
+        print(f'Energy = {best_overall_energy:.8f}, Params = {best_overall_params:.8f}\n')
         return best_energies, best_circs, best_overall_circuit, best_overall_energy, best_overall_params, best_overall_converge_cnts, best_overall_converge_vals, best_ansatz_str
