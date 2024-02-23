@@ -29,7 +29,7 @@ ansatz_options_list2 = {
     'constructive': True,
     'layers': 1,
     'num_keep': 1,
-    'num_qubits': 5,
+    'num_qubits': 5, 
     'add_h': False,
     'add_sx': True,
     'add_rs': True,

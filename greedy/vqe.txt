@@ -1,2 +1,16 @@
 Layer 1 ...
 Circuit 1: Best Energy = -9139.74726362, Counts = 10000
+Circuit 2: Best Energy = -9139.76440850, Counts = 10000
+Circuit 3: Best Energy = -9139.74726362, Counts = 10000
+Circuit 4: Best Energy = -8427.44795024, Counts = 10000
+Circuit 5: Best Energy = -9139.93985355, Counts = 10000
+Circuit 6: Best Energy = -9139.74726362, Counts = 10000
+Circuit 7: Best Energy = -9139.93985355, Counts = 10000
+Circuit 8: Best Energy = -9141.98178419, Counts = 10000
+Circuit 9: Best Energy = -9148.72494054, Counts = 10000
+Circuit 10: Best Energy = -9139.93985355, Counts = 10000
+*****************************************
+Layer 1 results:
+Circuit 1: Energy = -9148.72494054
+*****************************************
+Final best circuit after 1 layers: None, Energy = -9148.72494054
